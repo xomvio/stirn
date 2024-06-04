@@ -1,0 +1,9 @@
+[package]
+name = "my-http-server"
+version = "0.1.0"
+author = "xomvio"
+edition = "2021"
+
+[dependencies]
+itertools = "0.11.0"
+flate2 = "1.0.30"
