@@ -1,4 +1,5 @@
 use std::{fs::File, io::Read};
+use flate2;
 
 pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
@@ -41,7 +42,7 @@ enum Reading {
     End,
 }
 
-pub fn get_header(lines:&Vec<String>, key:&str) -> String {
+pub fn get_header(lines:&Vec<String>, key:&str) -> String { //example key "Accept-Encoding"
     for l in lines {
         let mut name_and_val = l.split(": ");
         if name_and_val.next().expect("broken header key") == key {
@@ -140,5 +141,6 @@ fn process_commands(filestr: String, nextfilestr: String) -> String {
             },
         }
     }
+
     newfilestr
 }

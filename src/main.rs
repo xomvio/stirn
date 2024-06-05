@@ -1,4 +1,3 @@
-use xom_http;
 use xom_http::rapid::{HttpBuilder, Route};
 
 fn main() {
@@ -9,7 +8,7 @@ fn main() {
 	];
 	let httpbuilder = HttpBuilder { 
 		port: 4221, 
-		routes: routes
+		routes
 	};
     xom_http::run(httpbuilder);
 }

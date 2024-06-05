@@ -2,6 +2,7 @@ use std::fs;
 use std::io::{BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use itertools::Itertools;
+use flate2::{Compression, write::GzEncoder};
 
 pub mod rapid;
 use rapid::*;
@@ -49,9 +50,25 @@ fn handle_req(mut streamx: TcpStream, routes:Vec<Route>) {
 	resp.headers = RESPONSE_404.to_string() + "\r\n";
 	for route in routes {
 		if req.endpoint == route.endpoint {
-			resp.headers = RESPONSE_200.to_string() + "\r\n";
-			let filestr = initialize(route);
-			resp.body = filestr.as_bytes().to_vec();
+
+			let filestr = initialize(route);	//initialize file if endpoint matches
+
+			resp.headers = RESPONSE_200.to_string();
+
+			let encoding = get_header(&req.headers, "Accept-Encoding");	//check for encoding
+			if encoding.contains("gzip") {	//gzip encoding
+				let mut compbody = Vec::new();
+				let mut encoder = GzEncoder::new(&mut compbody, Compression::default());
+				encoder.write_all(filestr.as_bytes()).unwrap();
+				encoder.finish().unwrap();
+				resp.body = compbody;
+				resp.headers += "Content-Encoding: gzip\r\n";
+			}
+			else {	//unsupported or no encoding
+				resp.body = filestr.as_bytes().to_vec();
+			}
+
+			resp.headers += &("Content-Type: text/plain\r\nContent-Length: ".to_string() + &resp.body.len().to_string() + "\r\n\r\n");
 		}
 		else if req.endpoint == "/favicon.ico" {
 			match fs::read("files/favicon.ico") {
