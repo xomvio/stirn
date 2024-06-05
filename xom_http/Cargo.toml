@@ -1,8 +1,10 @@
 [package]
-name = "my_website"
+name = "xom_http"
 version = "0.1.0"
+author = "xomvio"
 edition = "2021"
 
 [dependencies]
-xom_http = {path = "xom_http"}
+itertools = "0.11.0"
+flate2 = "1.0.30"
 tokio = "1.38.0"
