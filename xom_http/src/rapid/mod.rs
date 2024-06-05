@@ -1,7 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Read, str::Chars};
-
-use itertools::Itertools;
-
+use std::{fs::File, io::Read};
 
 pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
@@ -55,7 +52,7 @@ pub fn get_header(lines:&Vec<String>, key:&str) -> String {
 }
 
 pub fn initialize(route:Route) -> String {
-    let mut newfilestr:String = "".to_string();    
+    let newfilestr:String;    
 
     let mut file = File::open("files/".to_string() + route.file.as_str()).unwrap();
     let mut filestr: String = String::new();

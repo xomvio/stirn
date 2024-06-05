@@ -1,14 +1,10 @@
-use std::collections::HashMap;
+use std::fs;
 use std::io::{BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::fs::File;
 use itertools::Itertools;
 
 pub mod rapid;
 use rapid::*;
-
-//pls
-
 
 pub fn run(httpbuilder:HttpBuilder) {
 	let listener = TcpListener::bind(
@@ -57,83 +53,20 @@ fn handle_req(mut streamx: TcpStream, routes:Vec<Route>) {
 			let filestr = initialize(route);
 			resp.body = filestr.as_bytes().to_vec();
 		}
-	}
-
-	/*if req.method == "GET" {
-		if req.endpoint == "/" {
-			resp.headers = RESPONSE_200.to_string() + "\r\n";
-		}
-		else if req.endpoint.starts_with("/echo/") {
-			let echostr = first_line[1].replace("/echo/", "");
-			if get_header(&req.headers, "Accept-Encoding").contains("gzip") {
-				let echo = echostr.as_bytes();
-                let mut compbody = Vec::new();
-                {
-                    let mut encoder = GzEncoder::new(&mut compbody, Compression::default());
-                    encoder.write_all(echo).unwrap();
-                    encoder.finish().unwrap();
-                }
-                resp.body = compbody;
-                resp.headers = format!(
-                    "{}Content-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n",
-                    RESPONSE_200,
-                    resp.body.len()
-                );
-
-			}
-			else {
-				resp.body = echostr.as_bytes().to_vec();
-				resp.headers = RESPONSE_200.to_string() + "Content-Type: text/plain\r\nContent-Length: " + &resp.body.len().to_string() + "\r\n\r\n";
-			}
-		}
-		else if req.endpoint.starts_with("/files/") {
-			let path = "/tmp/data/codecrafters.io/http-server-tester/".to_string() + req.endpoint.replace("/files/", "").as_str();
-
-			let f = fs::read_to_string(path);
-			match f {
-				Ok(f) => {
-					resp.headers = RESPONSE_200.to_string() + "Content-Type: application/octet-stream\r\nContent-Length: " + f.len().to_string().as_str() + "\r\n\r\n";
-					resp.body = f.as_bytes().to_vec();
+		else if req.endpoint == "/favicon.ico" {
+			match fs::read("files/favicon.ico") {
+				Ok(favicon)=>{
+					resp.headers = RESPONSE_200.to_string() + "Content-Type: image/x-icon\r\nContent-Length: " + &favicon.len().to_string() + "\r\n\r\n";
+					resp.body = favicon;
 				}
-				Err(e) => {
-					println!("{}", e);
+				Err(_)=>{
 					resp.headers = RESPONSE_404.to_string() + "\r\n";
-
 				}
-
 			}
 		}
-		else if req.endpoint == "/user-agent" {
-			resp.body = get_header(&req.headers,"User-Agent").as_bytes().to_vec();
-			resp.headers = RESPONSE_200.to_string() + "Content-Type: text/plain\r\nContent-Length: " + &resp.body.len().to_string() + "\r\n\r\n";
-		}
-		else {
-			resp.headers = RESPONSE_404.to_string() + "\r\n";
-		}
 	}
-	else if req.method == "POST" {
-		if req.endpoint.starts_with("/files/") {
-			let path = "/tmp/data/codecrafters.io/http-server-tester/".to_string() + req.endpoint.replace("/files/", "").as_str();			
-			let content: String = req.headers.last().unwrap().chars().filter(|&c| c != '\x00').collect();
-			//println!("{content}");
-			let mut f = File::create(path).unwrap();
-			
-			f.write(content.as_bytes()).unwrap();
-
-			resp.headers = RESPONSE_201.to_string() + "\r\n";
-		}
-		else {
-			resp.headers = RESPONSE_404.to_string() + "\r\n";
-		}
-	}
-	else {
-		resp.headers = RESPONSE_404.to_string() + "\r\n";
-	}*/
 	
     streamx.write_all(resp.headers.as_bytes()).unwrap();
     streamx.write_all(&resp.body).unwrap();
-
-    if let Err(e) = streamx.flush() {
-        println!("Error flushing stream: {}", e);
-    }
+    streamx.flush().unwrap();
 }
