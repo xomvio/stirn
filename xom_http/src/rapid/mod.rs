@@ -67,17 +67,18 @@ pub fn initialize(route:Route) -> String {
         layoutfile.read_to_string(&mut layoutstr).unwrap();
         newfilestr = process_commands(layoutstr, filestr);
     }
+    else {
+        newfilestr = process_commands(filestr, "".to_string());
+    }
 
-    let mut elements:Vec<XomElement> = vec![];
-    let mut newelem:XomElement = XomElement { key: "".to_string(), val: "".to_string() };
-    
-    
+    /*let mut elements:Vec<XomElement> = vec![];
+    let mut newelem:XomElement = XomElement { key: "".to_string(), val: "".to_string() };*/
+        
     println!("{newfilestr}");
-    println!("{:?}",elements);
     newfilestr
 }
 
-fn process_commands(filestr: String, realfilestr: String) -> String {
+fn process_commands(filestr: String, nextfilestr: String) -> String {
     let mut elements:Vec<XomElement> = vec![];
     let mut newelem:XomElement = XomElement { key: "".to_string(), val: "".to_string() };
     let mut newfilestr:String = "".to_string();
@@ -127,7 +128,7 @@ fn process_commands(filestr: String, realfilestr: String) -> String {
                         match newelem.key.trim() {
                             "CallBody"=>{
                                 newfilestr.push_str(
-                                    process_commands(realfilestr.clone(), "".to_string()).as_str()
+                                    process_commands(nextfilestr.clone(), "".to_string()).as_str()
                                 );
                             },
                             _=>{},
