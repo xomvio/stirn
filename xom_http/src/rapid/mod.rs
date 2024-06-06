@@ -1,5 +1,5 @@
-use std::{fs::File, io::Read};
-use flate2;
+use std::{fs::File, io::{Read, Write}};
+use flate2::{write::GzEncoder, Compression};
 
 pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
@@ -52,8 +52,14 @@ pub fn get_header(lines:&Vec<String>, key:&str) -> String { //example key "Accep
     return "undefined".to_string()
 }
 
+pub fn compress_data(data: &[u8]) -> Vec<u8> {
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(data).unwrap();
+    encoder.finish().unwrap()
+}
+
 pub fn initialize(route:Route) -> String {
-    let newfilestr:String;    
+    let newfilestr:String;
 
     let mut file = File::open("files/".to_string() + route.file.as_str()).unwrap();
     let mut filestr: String = String::new();
@@ -72,7 +78,6 @@ pub fn initialize(route:Route) -> String {
     /*let mut elements:Vec<XomElement> = vec![];
     let mut newelem:XomElement = XomElement { key: "".to_string(), val: "".to_string() };*/
         
-    println!("{newfilestr}");
     newfilestr
 }
 
