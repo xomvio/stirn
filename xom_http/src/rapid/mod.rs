@@ -1,5 +1,8 @@
 use std::{fs::File, io::{Read, Write}};
 use flate2::{write::GzEncoder, Compression};
+pub mod stream;
+pub mod utils;
+use utils::get_header;
 
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
 pub const RESPONSE_201:&str = "HTTP/1.1 201 Created\r\n";
@@ -47,16 +50,6 @@ enum Reading {
     Key,
     Val,
     End,
-}
-
-pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example key "Accept-Encoding"
-    for l in lines {
-        let mut name_and_val = l.split(": ");
-        if name_and_val.next().expect("broken header key") == header {
-            return Some(name_and_val.next().expect("broken header value").to_string());
-        }
-    }
-    return None
 }
 
 pub fn compress_data(data: &[u8]) -> Vec<u8> {
