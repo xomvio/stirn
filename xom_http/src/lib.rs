@@ -49,55 +49,45 @@ fn handle_req(mut streamx: TcpStream, routes:Vec<Route>) {
 	for route in routes {		//response if route exists on endpoint list
 
 		if req.endpoint == route.endpoint {
-			let typeistext;
-			if req.endpoint.contains(".css") {
-				resp.headers = RESPONSE_200.to_string() + "Content-Type: text/css\r\n";		//css file
-				typeistext = true;
+
+			let filestr;
+			match get_header(&req.headers, "Accept") {
+				Some(accepting)=>{
+					if accepting.contains("text/css") {
+						resp.headers = RESPONSE_200.to_string() + "Content-Type: text/css\r\n";		//css file
+						filestr = initialize_raw(route);
+					}
+					else if accepting.contains("image/x-icon") {
+						resp.headers = RESPONSE_200.to_string() + "Content-Type: image/x-icon\r\n";	//ico file
+						filestr = initialize_raw(route);
+					}
+					else if accepting.contains("text/html") {
+						resp.headers = RESPONSE_200.to_string() + "Content-Type: text/html\r\n";	//html file
+						filestr = initialize(route, &req);						
+					}
+					else {	//unknown accept
+						resp.headers = RESPONSE_200.to_string() + "Content-Type: text/plain\r\n";	//plain text file
+						filestr = initialize(route, &req);						
+					}
+				},
+				None=>{		//no accept
+					resp.headers = RESPONSE_200.to_string() + "Content-Type: text/plain\r\n";	//plain text file
+					filestr = initialize(route, &req);						
+				},
 			}
-			else if req.endpoint.contains(".ico"){
-				resp.headers = RESPONSE_200.to_string() + "Content-Type: image/x-icon\r\n";	//ico file
-				typeistext = false;
+			
+			let encoding_gzip;	//check gzip encoding
+			match get_header(&req.headers, "Accept-Encoding") {
+				Some(headerval)=> encoding_gzip = headerval.contains("gzip"),
+				None=>encoding_gzip = false,
+			}
+
+			if encoding_gzip {
+				resp.body = compress_data(filestr.as_bytes());	//gzipping
+				resp.headers += "Content-Encoding: gzip\r\n";
 			}
 			else {
-				resp.headers = RESPONSE_200.to_string() + "Content-Type: text/html\r\n";	//html file
-				typeistext = true;
-			}
-
-
-			if typeistext {				
-				let filestr = initialize(route, &req);	//initialize file if endpoint matches
-
-				let encoding_gzip;	//check gzip encoding
-				match get_header(&req.headers, "Accept-Encoding") {
-					Some(headerval)=> encoding_gzip = headerval.contains("gzip"),
-					None=>encoding_gzip = false,
-				}
-
-				if encoding_gzip {
-					resp.body = compress_data(filestr.as_bytes());
-					resp.headers += "Content-Encoding: gzip\r\n";
-				}
-				else {	//no compression or unsupported
-					resp.body = filestr.as_bytes().to_vec();
-				}
-			}
-			else {
-				if req.endpoint.contains(".ico") {
-					let encoding_gzip;	//check gzip encoding
-					match get_header(&req.headers, "Accept-Encoding") {
-						Some(headerval)=> encoding_gzip = headerval.contains("gzip"),
-						None=>encoding_gzip = false,
-					}
-
-					if encoding_gzip {
-						let favicon = fs::read("files".to_string() + req.endpoint.as_str()).unwrap();
-						resp.body = compress_data(&favicon);
-						resp.headers += "Content-Encoding: gzip\r\n";
-					}
-					else {
-						resp.body = fs::read("files".to_string() + req.endpoint.as_str()).unwrap();
-					}					
-				}
+				resp.body = filestr.as_bytes().to_vec();
 			}
 
 

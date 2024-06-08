@@ -65,6 +65,13 @@ pub fn compress_data(data: &[u8]) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
+pub fn initialize_raw(route:Route) -> String {
+    let mut file = File::open("files/".to_string() + route.file.as_str()).unwrap();
+    let mut filestr: String = String::new();
+    file.read_to_string(&mut filestr).unwrap();
+    filestr
+}
+
 pub fn initialize(route:Route, request: &Request) -> String {
     let newfilestr:String;
 
