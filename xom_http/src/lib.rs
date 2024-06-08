@@ -1,6 +1,6 @@
 use std::net::TcpListener;
-pub mod rapid;
-use rapid::{stream, HttpBuilder};
+pub mod utils;
+use utils::{stream, HttpBuilder};
 
 pub fn run(httpbuilder:HttpBuilder) {
 	let listener = TcpListener::bind(

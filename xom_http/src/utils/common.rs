@@ -1,3 +1,5 @@
+use std::io::Write;
+use flate2::{write::GzEncoder, Compression};
 
 pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example key "Accept-Encoding"
     for l in lines {
@@ -7,4 +9,10 @@ pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example
         }
     }
     return None
+}
+
+pub fn compress_data(data: &[u8]) -> Vec<u8> {
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(data).unwrap();
+    encoder.finish().unwrap()
 }
