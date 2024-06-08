@@ -1,9 +1,10 @@
 use std::{fs::File, io::{Read, Write}};
 use flate2::{write::GzEncoder, Compression};
 
-pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
 pub const RESPONSE_201:&str = "HTTP/1.1 201 Created\r\n";
+pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
+
 pub struct Request {
 	pub method: String,
 	pub endpoint: String,
@@ -26,12 +27,18 @@ pub struct Route {
 pub struct HttpBuilder {
     pub port: u16,
     pub routes: Vec<Route>,
+    pub error_page: Route,
 }
 
-#[derive(Debug)]
 pub struct XomElement {
     key: String,
     val: String,
+}
+
+impl XomElement {
+    fn new() -> XomElement{
+        XomElement { key: "".to_string(), val: "".to_string() }
+    }
 }
 
 enum Reading {
@@ -42,14 +49,14 @@ enum Reading {
     End,
 }
 
-pub fn get_header(lines:&Vec<String>, key:&str) -> String { //example key "Accept-Encoding"
+pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example key "Accept-Encoding"
     for l in lines {
         let mut name_and_val = l.split(": ");
-        if name_and_val.next().expect("broken header key") == key {
-            return name_and_val.next().expect("broken header value").to_string();
+        if name_and_val.next().expect("broken header key") == header {
+            return Some(name_and_val.next().expect("broken header value").to_string());
         }
     }
-    return "undefined".to_string()
+    return None
 }
 
 pub fn compress_data(data: &[u8]) -> Vec<u8> {
@@ -58,21 +65,23 @@ pub fn compress_data(data: &[u8]) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
-pub fn initialize(route:Route) -> String {
+pub fn initialize(route:Route, request: &Request) -> String {
     let newfilestr:String;
 
     let mut file = File::open("files/".to_string() + route.file.as_str()).unwrap();
     let mut filestr: String = String::new();
     file.read_to_string(&mut filestr).unwrap();
 
+    let mut elements:Vec<XomElement> = vec![];
+
     if route.layout != "" {
         let mut layoutfile = File::open("files/".to_string() + route.layout.as_str()).unwrap();
         let mut layoutstr: String = String::new();
         layoutfile.read_to_string(&mut layoutstr).unwrap();
-        newfilestr = process_commands(layoutstr, filestr);
+        newfilestr = process_commands(layoutstr, filestr, &request);
     }
     else {
-        newfilestr = process_commands(filestr, "".to_string());
+        newfilestr = process_commands(filestr, "".to_string(), &request);
     }
 
     /*let mut elements:Vec<XomElement> = vec![];
@@ -81,7 +90,7 @@ pub fn initialize(route:Route) -> String {
     newfilestr
 }
 
-fn process_commands(filestr: String, nextfilestr: String) -> String {
+fn process_commands(filestr: String, nextfilestr: String, request: &Request) -> String {
     let mut elements:Vec<XomElement> = vec![];
     let mut newelem:XomElement = XomElement { key: "".to_string(), val: "".to_string() };
     let mut newfilestr:String = "".to_string();
@@ -91,8 +100,8 @@ fn process_commands(filestr: String, nextfilestr: String) -> String {
         match read {
             Reading::None=>{
                 match ch {
-                    '<'=>{
-                        newfilestr.push(ch);
+                    '@'=>{
+                        //newfilestr.push(ch);
                         read = Reading::Start;
                     }
                     _=>newfilestr.push(ch),
@@ -101,48 +110,50 @@ fn process_commands(filestr: String, nextfilestr: String) -> String {
             Reading::Start=>{
                 match ch {
                     '@'=>{
-                        newfilestr.pop();
-                        read = Reading::Key;
-                    }
-                    _=>{
                         newfilestr.push(ch);
                         read = Reading::None;
+                    }
+                    _=>{
+                        newelem.key.push(ch);
+                        read = Reading::Key;
                     }
                 }
             },
             Reading::Key=>{
                 match ch {
-                    '='=>read = Reading::Val,
-                    '@'=>read = Reading::End,
+                    '('=>read = Reading::Val,
+                    //'@'=>read = Reading::End,
                     _=>newelem.key.push(ch)
                 }
             },
             Reading::Val=>{
                 match ch {
-                    '@'=>read = Reading::End,
+                    ')'=>read = Reading::End,
                     _=>newelem.val.push(ch),
                 }
             },
             Reading::End=>{
-                match ch {
-                    '>'=>{
-                        newelem = XomElement{ key:newelem.key.trim().to_string(), val:newelem.val.trim().to_string() };
+                newelem = XomElement{ key:newelem.key.trim().to_string(), val:newelem.val.trim().to_string() };
 
-                        match newelem.key.trim() {
-                            "CallBody"=>{
-                                newfilestr.push_str(
-                                    process_commands(nextfilestr.clone(), "".to_string()).as_str()
-                                );
-                            },
-                            _=>{},
-                        }
-                        
-                        elements.push(newelem);
-                        read = Reading::None;
-                        newelem = XomElement{ key:"".to_string(), val:"".to_string() };
+                match newelem.key.trim() {
+                    "callbody"=>{
+                        newfilestr.push_str(
+                            process_commands(nextfilestr.clone(), "".to_string(), request).as_str()
+                        );
                     },
-                    _=>panic!("Error reading Xom Element. > expected"),
+                    "getheader"=>{
+                        match get_header(&request.headers, &newelem.val) {
+                            Some(headerval)=>{newfilestr.push_str(&headerval)},
+                            None=>println!("Warning: User-Agent not found."),
+                        }
+                    },
+                    _=>{},
                 }
+                
+                println!("{}: {}",newelem.key, newelem.val);
+                elements.push(newelem);
+                read = Reading::None;
+                newelem = XomElement{ key:"".to_string(), val:"".to_string() };
             },
         }
     }
