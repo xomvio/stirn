@@ -63,25 +63,28 @@ impl Route {
     
         let filestr;
 			
-        match self.file.split('.').last().unwrap() {//file format
-            "css"=>{
-                resp.headers = RESPONSE_200.to_string() + "Content-Type: text/css\r\n";		//css file
-                filestr = initialize_raw(self);	
-            },
-            "ico"=>{
-                resp.headers = RESPONSE_200.to_string() + "Content-Type: image/x-icon\r\n";	//ico file
-                filestr = initialize_raw(self);	
-            },
-            "rshtml"=>{
-                resp.headers = RESPONSE_200.to_string() + "Content-Type: text/html\r\n";	//html file
-                filestr = initialize(self, &req, commands);
-            },
-            _=>{ //unknown file format
-                resp.headers = RESPONSE_200.to_string() + "Content-Type: text/plain\r\n";	//plain text file
-                filestr = initialize_raw(self);
-            }
-        }
-        
+        let file_extension = self.file.split('.').last().unwrap_or("txt");
+        let content_type = match file_extension {
+            "css" => "text/css",
+            "ico" => "image/x-icon",
+            "rshtml" | "html" => "text/html",
+            "txt" | "text" => "text/plain",
+            "js" => "text/javascript",
+            "json" => "application/json",
+            "jpg" | "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "svg" => "image/svg+xml",
+            "woff" => "font/woff",
+            _ => "text/plain",
+        };
+        resp.headers = format!("{RESPONSE_200}Content-Type: {content_type}\r\n");
+
+        filestr = match file_extension {
+            "rshtml"=> initialize(self, &req, commands),
+            _ => initialize_raw(self),
+        };
+
         //check gzip encoding
         match get_header(&req.headers, "Accept-Encoding") {
             Some(headerval)=>{ 
