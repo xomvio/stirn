@@ -1,8 +1,8 @@
 [package]
-name = "my_website"
+name = "stirn"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-xom_http = {path = "xom_http"}
-tokio = "1.38.0"
+flate2 = "1.0.24"
+itertools = "0.10.5"
