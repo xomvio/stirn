@@ -1,4 +1,4 @@
-use std::{fs, net::{TcpListener, TcpStream}};
+use std::{fs, net::{TcpListener, TcpStream}, os::fd::{AsFd, IntoRawFd}};
 use itertools::Itertools;
 use std::io::{BufReader, Read, Write};
 
@@ -21,7 +21,7 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
-
+#[derive(Clone)]
 pub struct Server {
     pub name: String,
     pub url: String,
@@ -36,7 +36,13 @@ impl Server {
         let listener = TcpListener::bind(format!("127.0.0.1:{}", self.port)).unwrap();
         println!("Listening on http://{}", listener.local_addr().unwrap());
 
-        for (stream, addr) in listener.accept() {
+        while let Ok((stream, _)) = listener.accept() {
+            
+            let dir = self.dir.clone();
+            std::thread::spawn(|| handle(dir, stream));
+        }
+        
+        /*for (stream, addr) in listener.accept() {
             println!("Accepted connection from {}", addr);
             let dir = self.dir.clone();
             std::thread::spawn(|| handle(dir, stream));
@@ -47,14 +53,14 @@ impl Server {
                 }
                 Err(e) => println!("Error: {}", e),
             }*/
-        }
+        }*/
     }
 
 }
 
 // Handle a connection on the specified TCP stream.
-fn handle(dir: String, mut stream: std::net::TcpStream) {
-    let req = request::stream_read(&mut stream);
+pub fn handle(dir: String, stream: std::net::TcpStream) {
+    let req = Request::read(&stream);
     let endpoint = if req.endpoint == "/" { "/index.html" } else { &req.endpoint };
 
     let filestr = fs::read_to_string(format!("{}/{}", dir, endpoint));
@@ -71,7 +77,6 @@ fn handle(dir: String, mut stream: std::net::TcpStream) {
             resp
         }
     };
-
     
     stream_write(stream, resp);
 }
@@ -93,4 +98,11 @@ pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example
         }
     }
     return None
+}
+
+pub fn get_hostname(stream: &TcpStream) -> String {
+    let req =Request::read(stream);
+    //should return 500 instead unwrap
+    let hostname = req.get_header("Host").unwrap();
+    String::from(hostname)
 }

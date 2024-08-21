@@ -41,7 +41,7 @@ impl StrictServer {
 
 /// Handle a connection on the specified TCP stream.
 fn handle_strict(mut stream: std::net::TcpStream) {
-    let req = crate::libx::request::stream_read(&mut stream);
+    let req = crate::libx::Request::read(&mut stream);
 
 	let mut found = false;
 
