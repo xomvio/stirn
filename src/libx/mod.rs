@@ -24,6 +24,7 @@ pub struct Response {
 
 pub struct Server {
     pub name: String,
+    pub url: String,
     pub port: u16,
     pub dir: String,
 }
@@ -32,17 +33,20 @@ static mut DIR: String = String::new();
 
 impl Server {
     pub fn run(&self) {
-        //unsafe { DIR = self.dir.clone(); }
         let listener = TcpListener::bind(format!("127.0.0.1:{}", self.port)).unwrap();
+        println!("Listening on http://{}", listener.local_addr().unwrap());
 
-        for stream in listener.incoming() {
-            match stream {
+        for (stream, addr) in listener.accept() {
+            println!("Accepted connection from {}", addr);
+            let dir = self.dir.clone();
+            std::thread::spawn(|| handle(dir, stream));
+            /*match stream {                
                 Ok(stream) => {
                     let dir = self.dir.clone(); //must have a better solution
                     std::thread::spawn(|| handle(dir, stream));
                 }
                 Err(e) => println!("Error: {}", e),
-            }
+            }*/
         }
     }
 
@@ -51,10 +55,10 @@ impl Server {
 // Handle a connection on the specified TCP stream.
 fn handle(dir: String, mut stream: std::net::TcpStream) {
     let req = request::stream_read(&mut stream);
-    let endpoint = if req.endpoint == "/" { "index.html" } else { &req.endpoint };
+    let endpoint = if req.endpoint == "/" { "/index.html" } else { &req.endpoint };
 
     let filestr = fs::read_to_string(format!("{}/{}", dir, endpoint));
-    println!("{}/{}", dir, endpoint);
+    println!("{}{}", dir, endpoint);
     let resp = match filestr {
         Ok(filestr) => {            
             let mut resp: Response = Response { headers: String::new(), body: filestr.as_bytes().to_vec() };
