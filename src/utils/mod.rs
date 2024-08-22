@@ -1,13 +1,33 @@
-use std::{fs, net::{TcpListener, TcpStream}, os::fd::{AsFd, IntoRawFd}};
-use itertools::Itertools;
+use std::net::TcpStream;
 use std::io::{BufReader, Read, Write};
-
-pub mod strict;
+use itertools::Itertools;
 pub mod request;
 
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
 pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 
+pub fn stream_read(mut stream:&TcpStream) -> Request {        
+    let mut reader = BufReader::new(&mut stream);   //tcp reader
+    let mut reading_buffer = [0; 1024];	//reading buffer
+    let _ = reader.read(&mut reading_buffer).expect("cannot read stream for buffer");	//writing stream to buffer as bytes
+
+    let buffer_str = String::from_utf8_lossy(&reading_buffer);	//convert buffer to string
+
+    let buffer_lines:Vec<String> = buffer_str.split("\r\n").collect_vec().iter().map(|&s| s.into()).collect();	//headers
+    let first_line:Vec<String> = buffer_lines[0].split_whitespace().collect_vec().iter().map(|&s| s.into()).collect();	//first line of header
+
+    let req = Request {
+        method: first_line[0].to_string(),
+        endpoint: first_line[1].to_string(),
+        protocol:first_line[2].to_string(), 
+        headers:  buffer_lines[1..].to_vec(),
+        //nekot: "".to_string(),
+    };
+    
+    req
+}
+
+#[derive(Debug)]
 pub struct Request {
 	pub method: String,
 	pub endpoint: String,
@@ -19,6 +39,16 @@ pub struct Request {
 pub struct Response {
     pub headers: String,
     pub body: Vec<u8>,
+    pub stream: TcpStream,
+}
+
+impl Response {
+    pub fn send(mut self) -> TcpStream {
+        self.stream.write_all(self.headers.as_bytes()).unwrap();
+        self.stream.write_all(&self.body).unwrap();
+        self.stream.flush().unwrap();
+        self.stream
+    }
 }
 
 #[derive(Clone)]
@@ -33,14 +63,14 @@ static mut DIR: String = String::new();
 
 impl Server {
     pub fn run(&self) {
-        let listener = TcpListener::bind(format!("127.0.0.1:{}", self.port)).unwrap();
+        /*let listener = TcpListener::bind(format!("127.0.0.1:{}", self.port)).unwrap();
         println!("Listening on http://{}", listener.local_addr().unwrap());
 
         while let Ok((stream, _)) = listener.accept() {
             
             let dir = self.dir.clone();
             std::thread::spawn(|| handle(dir, stream));
-        }
+        }*/
         
         /*for (stream, addr) in listener.accept() {
             println!("Accepted connection from {}", addr);
@@ -58,37 +88,6 @@ impl Server {
 
 }
 
-// Handle a connection on the specified TCP stream.
-pub fn handle(dir: String, stream: std::net::TcpStream) {
-    let req = Request::read(&stream);
-    let endpoint = if req.endpoint == "/" { "/index.html" } else { &req.endpoint };
-
-    let filestr = fs::read_to_string(format!("{}/{}", dir, endpoint));
-    println!("{}{}", dir, endpoint);
-    let resp = match filestr {
-        Ok(filestr) => {            
-            let mut resp: Response = Response { headers: String::new(), body: filestr.as_bytes().to_vec() };
-    		resp.headers = format!("{}Content-Length: {}\r\n\r\n", RESPONSE_200, resp.body.len());
-            resp
-        }
-        Err(_) => {
-            let mut resp: Response = Response { headers: String::new(), body: vec![] };
-    		resp.headers = format!("{}\r\npage not found: {}", RESPONSE_404.to_string(), endpoint);
-            resp
-        }
-    };
-    
-    stream_write(stream, resp);
-}
-
-
-pub fn stream_write(mut stream:TcpStream, resp:Response) -> TcpStream {
-    stream.write_all(resp.headers.as_bytes()).unwrap();
-    stream.write_all(&resp.body).unwrap();
-    stream.flush().unwrap();
-    stream
-}
-
 //will use this later
 pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example key "Accept-Encoding"
     for l in lines {
@@ -98,11 +97,4 @@ pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example
         }
     }
     return None
-}
-
-pub fn get_hostname(stream: &TcpStream) -> String {
-    let req =Request::read(stream);
-    //should return 500 instead unwrap
-    let hostname = req.get_header("Host").unwrap();
-    String::from(hostname)
 }
