@@ -16,15 +16,13 @@ pub fn stream_read(mut stream:&TcpStream) -> Request {
     let buffer_lines:Vec<String> = buffer_str.split("\r\n").collect_vec().iter().map(|&s| s.into()).collect();	//headers
     let first_line:Vec<String> = buffer_lines[0].split_whitespace().collect_vec().iter().map(|&s| s.into()).collect();	//first line of header
 
-    let req = Request {
+    Request {
         method: first_line[0].to_string(),
         endpoint: first_line[1].to_string(),
         protocol:first_line[2].to_string(), 
         headers:  buffer_lines[1..].to_vec(),
         //nekot: "".to_string(),
-    };
-    
-    req
+    }
 }
 
 #[derive(Debug)]
@@ -57,44 +55,4 @@ pub struct Server {
     pub url: String,
     pub port: u16,
     pub dir: String,
-}
-
-static mut DIR: String = String::new();
-
-impl Server {
-    pub fn run(&self) {
-        /*let listener = TcpListener::bind(format!("127.0.0.1:{}", self.port)).unwrap();
-        println!("Listening on http://{}", listener.local_addr().unwrap());
-
-        while let Ok((stream, _)) = listener.accept() {
-            
-            let dir = self.dir.clone();
-            std::thread::spawn(|| handle(dir, stream));
-        }*/
-        
-        /*for (stream, addr) in listener.accept() {
-            println!("Accepted connection from {}", addr);
-            let dir = self.dir.clone();
-            std::thread::spawn(|| handle(dir, stream));
-            /*match stream {                
-                Ok(stream) => {
-                    let dir = self.dir.clone(); //must have a better solution
-                    std::thread::spawn(|| handle(dir, stream));
-                }
-                Err(e) => println!("Error: {}", e),
-            }*/
-        }*/
-    }
-
-}
-
-//will use this later
-pub fn get_header(lines:&Vec<String>, header:&str) -> Option<String> { //example key "Accept-Encoding"
-    for l in lines {
-        let mut name_and_val = l.split(": ");
-        if name_and_val.next().expect("broken header key") == header {
-            return Some(name_and_val.next().expect("broken header value").to_string());
-        }
-    }
-    return None
 }

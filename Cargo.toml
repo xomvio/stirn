@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 flate2 = "1.0.24"
 itertools = "0.10.5"
-xom_json ={ git = "https://github.com/xomvio/xom_json" }
+lazy_static = "1.4.0"
+xom_json = { git = "https://github.com/xomvio/xom_json" }

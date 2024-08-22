@@ -1,25 +1,23 @@
 mod config;
 mod utils;
 
-use std::io::stdin;
-use config::{get_config, Config};
+use config::get_config;
 use utils::{Server, stream_read};
+use lazy_static::lazy_static;
+lazy_static! {
+    static ref CONFIG : config::Config = get_config();
+}
 
-static mut SERVERS : Vec<Server> = Vec::new();
-
-fn main() { //this is actually lib.rs start function
+fn main() {
     let config = get_config();
     let listener = std::net::TcpListener::bind(format!("0.0.0.0:{}", config.port)).unwrap();
-    unsafe { SERVERS = config.servers.clone(); }
-    //let _ = start_servers(config.clone());
-    //let servers = config.servers.clone();
 
     while let Ok((stream, _)) = listener.accept() {
         std::thread::spawn(move || {
             let req = stream_read(&stream);
             let hostname = req.get_header("Host").unwrap();
 
-            for server in unsafe { &SERVERS } {
+            for server in CONFIG.servers.iter() {
                 if server.url == hostname {
                     req.handle(stream, server.dir.clone());
                     break;
@@ -28,12 +26,4 @@ fn main() { //this is actually lib.rs start function
         });
     }
     
-}
-
-async fn start_servers(config: Config) {
-    for server in config.servers {
-        std::thread::spawn(move || server.run());
-    }
-    //it just means wait for ctrl-c or etc.
-    for _ in stdin().lines() { } 
 }

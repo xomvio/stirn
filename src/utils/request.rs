@@ -1,9 +1,8 @@
 use super::Request;
 use super::Response;
 use std::net::TcpStream;
-use itertools::Itertools;
 use flate2;
-use std::io::{BufReader, Read, Write};
+use std::io::Write;
 use std::fs;
 
 impl Request {
@@ -11,10 +10,10 @@ impl Request {
         for line in self.headers.iter() {
             let mut name_and_val = line.split(": ");
             if name_and_val.next().expect("broken header key") == header {
-                return Some(name_and_val.next().expect("broken header value"));
+                name_and_val.next().expect("broken header value");
             }
         }
-        return None;
+        None
     }
 
     pub fn is_gzip_accepted(&self) -> bool {
@@ -53,7 +52,7 @@ impl Request {
                     let body = encoder.finish().unwrap();
                     Response { 
                         headers: format!("{}Content-Type: {}\r\nContent-Encoding: gzip\r\nContent-Length: {}\r\n\r\n", super::RESPONSE_200, content_type, body.len()), 
-                        body: body,
+                        body,
                         stream
                     }
                 }
@@ -61,14 +60,14 @@ impl Request {
                     let body = filestr;
                     Response { 
                         headers: format!("{}Content-Type{}\r\nContent-Length: {}\r\n\r\n", super::RESPONSE_200, content_type, body.len()), 
-                        body: body,
+                        body,
                         stream
                     }
                 }
             }
             Err(_) => {
                 let mut resp: Response = Response { headers: String::new(), body: vec![] , stream};
-                resp.headers = format!("{}\r\npage not found: {}", super::RESPONSE_404.to_string(), endpoint);
+                resp.headers = format!("{}\r\npage not found: {}", super::RESPONSE_404, endpoint);
                 resp
             }
         }
