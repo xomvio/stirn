@@ -10,7 +10,7 @@ impl Request {
         for line in self.headers.iter() {
             let mut name_and_val = line.split(": ");
             if name_and_val.next().expect("broken header key") == header {
-                name_and_val.next().expect("broken header value");
+                return Some(name_and_val.next().expect("broken header value"));
             }
         }
         None
