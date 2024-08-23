@@ -1,9 +1,16 @@
-use super::Request;
-use super::Response;
 use std::net::TcpStream;
 use flate2;
 use std::io::Write;
 use std::fs;
+
+use super::response::{Response, ResponseBuilder,};
+
+pub struct Request {
+	pub method: String,
+	pub endpoint: String,
+	pub protocol: String,
+	pub headers: Vec<String>,
+}
 
 impl Request {
     pub fn get_header(&self, header: &str) -> Option<&str> {
@@ -22,12 +29,9 @@ impl Request {
 
     // Handle a connection on the specified TCP stream.
     pub fn handle(&self, stream: TcpStream, dir: String) {
-        //let req = Request::read(&stream);
-        println!("{}", self.endpoint);
-        let endpoint = if self.endpoint == "/" { "/index.html" } else { &self.endpoint };
+        let endpoint = if self.endpoint == "/" { "/index.html" } else { &self.endpoint }.to_string();
 
-        //let file_extension = endpoint.split('.').last().unwrap_or("txt");
-        let content_type = match endpoint.split('.').last().unwrap() {
+        let content_type = match endpoint.split('.').last().unwrap_or("") {
             "css" => "text/css",
             "ico" => "image/x-icon",
             "html" => "text/html",
@@ -40,40 +44,16 @@ impl Request {
             "svg" => "image/svg+xml",
             "woff" => "font/woff",
             "function" => "text/html",
-            _ => "text/plain",
-        };
+            _ => "text/html",
+        }.to_string();
 
-        let filestr = fs::read(format!("{}/{}", dir, endpoint));
-        match filestr {
-            Ok(filestr) => {
-                if self.is_gzip_accepted() {
-                    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-                    encoder.write_all(&filestr).unwrap();
-                    let body = encoder.finish().unwrap();
-                    Response { 
-                        headers: format!("{}Content-Type: {}\r\nContent-Encoding: gzip\r\nContent-Length: {}\r\n\r\n", super::RESPONSE_200, content_type, body.len()), 
-                        body,
-                        stream
-                    }
-                }
-                else {
-                    let body = filestr;
-                    Response { 
-                        headers: format!("{}Content-Type{}\r\nContent-Length: {}\r\n\r\n", super::RESPONSE_200, content_type, body.len()), 
-                        body,
-                        stream
-                    }
-                }
-            }
-            Err(_) => {
-                let mut resp: Response = Response { headers: String::new(), body: vec![] , stream};
-                resp.headers = format!("{}\r\npage not found: {}", super::RESPONSE_404, endpoint);
-                resp
-            }
-        }
-        .send();
-        //resp.send();
-        //super::stream_write(stream, resp);
+        ResponseBuilder {
+            stream,
+            content_type,
+            dir,
+            endpoint,
+            is_gzip: self.is_gzip_accepted(),
+            status: super::RESPONSE_200.to_string(),
+        }.build().send();
     }
-
 }

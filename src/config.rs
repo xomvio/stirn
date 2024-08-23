@@ -3,7 +3,6 @@ use xom_json::{self, to_jobject, JArray, JObject, Val};
 //use crate::server::Server;
 use super::Server;
 
-#[derive(Clone)]
 pub struct Config {
     pub port: u16,
     pub default: String,

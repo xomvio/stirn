@@ -1,16 +1,15 @@
 mod config;
 mod utils;
 
-use config::get_config;
+use config::{get_config, Config};
 use utils::{Server, stream_read};
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref CONFIG : config::Config = get_config();
+    static ref CONFIG : Config = get_config();
 }
 
 fn main() {
-    let config = get_config();
-    let listener = std::net::TcpListener::bind(format!("0.0.0.0:{}", config.port)).unwrap();
+    let listener = std::net::TcpListener::bind(format!("0.0.0.0:{}", CONFIG.port)).unwrap();
 
     while let Ok((stream, _)) = listener.accept() {
         std::thread::spawn(move || {
@@ -25,5 +24,5 @@ fn main() {
             }
         });
     }
-    
 }
+
