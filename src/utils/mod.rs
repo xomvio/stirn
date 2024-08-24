@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::io::{BufReader, Read, Write};
+use std::io::{BufReader, Read};
 use itertools::Itertools;
 pub mod request;
 use request::Request;
@@ -11,7 +11,13 @@ pub const RESPONSE_500:&str = "HTTP/1.1 500 Internal Server Error\r\n";
 
 pub fn stream_read(mut stream:&TcpStream) -> Request {
     let mut reading_buffer = [0; 1024];	//reading buffer
-    let _ = BufReader::new(&mut stream).read(&mut reading_buffer).expect("cannot read stream for buffer");	//writing stream to buffer as bytes
+    //writing stream to buffer as bytes
+    match BufReader::new(&mut stream).read(&mut reading_buffer) {
+        Ok(_) => {},
+        Err(e) => {
+
+        }
+    }
 
     let buffer_str = String::from_utf8_lossy(&reading_buffer);	//convert buffer to string
 
@@ -23,10 +29,13 @@ pub fn stream_read(mut stream:&TcpStream) -> Request {
         endpoint: first_line[1].to_string(),
         protocol:first_line[2].to_string(), 
         headers:  buffer_lines[1..].to_vec(),
-        //nekot: "".to_string(),
+        error: "".to_string(),
     }
 }
 
+pub fn log(message: &str) {
+    println!("{}", message);
+}
 
 pub struct Server {
     pub name: String,
