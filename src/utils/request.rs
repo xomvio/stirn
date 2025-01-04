@@ -21,7 +21,7 @@ impl Request {
                 }
             }
         }
-        log(&format!("Warning: Header {} not found in headers; {}", header, self.headers.join("  ")));
+        log(&format!("Warning: Header {} not found in request headers; {}", header, self.headers.join("  ")));
         None
     }
 

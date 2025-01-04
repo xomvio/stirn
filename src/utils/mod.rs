@@ -6,6 +6,7 @@ use request::Request;
 pub mod response;
 
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
+pub const RESPONSE_206:&str = "HTTP/1.1 206 Partial Content\r\n";
 pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 pub const RESPONSE_500:&str = "HTTP/1.1 500 Internal Server Error\r\n";
 
@@ -14,9 +15,7 @@ pub fn stream_read(mut stream:&TcpStream) -> Request {
     //writing stream to buffer as bytes
     match BufReader::new(&mut stream).read(&mut reading_buffer) {
         Ok(_) => {},
-        Err(e) => {
-
-        }
+        Err(e) => { log(format!("Critical: Cannot read stream. {}",e.to_string()).as_str());}
     }
 
     let buffer_str = String::from_utf8_lossy(&reading_buffer);	//convert buffer to string
@@ -39,7 +38,7 @@ pub fn log(message: &str) {
 
 pub struct Server {
     pub name: String,
-    pub url: String,
+    pub hostname: String,
     pub port: u16,
     pub dir: String,
 }

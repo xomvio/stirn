@@ -1,19 +1,18 @@
 {
-    "port": 80,
+    "port": 4221,
     "default": "Ornek1",
 
     "servers": [
         {
             "name": "Ornek1",
-            "url": "127.0.0.1",
-            "port": 8910,
-            "dir":"/usr/share/stirners/main"
+            "hostname": "127.0.0.1:4221",
+            "dir":"/usr/share/nginx/stirners"
         },
         {
             "name": "Ornek2",
-            "url": "localhost",
+            "hostname": "localhost:4221",
             "port": 8930,
-            "dir": "/usr/share/stirners/main/test"
+            "dir": "/usr/share/nginx/stirners/test2"
         }
     ]
 }

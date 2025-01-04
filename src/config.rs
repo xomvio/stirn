@@ -1,19 +1,19 @@
 use std::{fs, io::Read};
 use xom_json::{self, to_jobject, JArray, JObject, Val};
-//use crate::server::Server;
+use crate::utils::log;
+
 use super::Server;
 
 pub struct Config {
-    pub port: u16,
-    pub default: String,
+    pub port: Option<u16>,
+    // DEFAULT SERVER IS NOW INACTIVE AND WILL BE RE-ACTIVATED IN A FUTURE VERSION
+    //pub default: Option<String>,
     pub servers: Vec<Server>,
 }
 
-//pub static mut CONFIG: Config = Config { port: 0, default: String::new(), servers: Vec::new() };
-
 impl Config {
     pub fn new() -> Config {
-        Config { port: 0, default: String::new(), servers: Vec::new() }
+        Config { port: None, /*default: Some(String::new()),*/ servers: Vec::new() }
     }
 }
 
@@ -26,7 +26,7 @@ pub fn get_config() -> Config {
         Ok(config_j) => {
 
             config.port = get_port(&config_j);
-            config.default = get_default(&config_j);
+            //config.default = get_default(&config_j);
 
             match config_j.get("servers") { 
                 Some(servers) => {
@@ -46,17 +46,19 @@ pub fn get_config() -> Config {
     config
 }
 
-fn get_port(config: &JObject) -> u16 {
+fn get_port(config: &JObject) -> Option<u16> {
     match config.get("port") {
-        Some(port) => {
-            if !port.is_number() { panic!("Port must be a number"); }
-            port.as_u16().unwrap()
+        Some(port_val) => {
+            if !port_val.is_number() { panic!("Port must be a number"); }
+            let port = port_val.as_u16().unwrap();
+            Some(port)
         },
-        None => { panic!("Error: No Port found in config");}
+        None => Some(80)
     }
 }
 
-fn get_default(config: &JObject) -> String {
+// DEFAULT SERVER IS NOW INACTIVE AND WILL BE RE-ACTIVATED IN A FUTURE VERSION
+/*fn get_default(config: &JObject) -> String {
     match config.get("default") {
         Some(default) => {
             if !default.is_string() { panic!("Default must be a string"); }
@@ -67,20 +69,34 @@ fn get_default(config: &JObject) -> String {
             String::new()
         }
     }
-}
+}*/
 
-fn get_server(server: &JObject) -> Server {
-    if server.get("name").is_none() { panic!("Server must have a name"); }
-    if server.get("url").is_none() { panic!("Server must have a url"); }
-    if server.get("port").is_none() { panic!("Server must have a port"); }
-    if server.get("dir").is_none() { panic!("Server must have a dir"); }
+fn get_server(serverj: &JObject) -> Server {
+    let server = Server {
+        name: match serverj.get("name") {
+            Some(name) => name.as_string().expect("Server name must be a valid string"),
+            None => String::new()
+        },
+        hostname: serverj.get("hostname")
+            .expect("Server must have a hostname").as_string()
+            .expect("Server hostname must be a valid string"),
+        port: match serverj.get("port") {
+            Some(port) => port.as_u16().expect("Server port must be a valid u16 number"),
+            None => 0
+        },
+        dir: match serverj.get("dir") {
+            Some(dir) => {
+                dir.as_string().expect("Server dir must be a valid string")
+            },
+            None => String::new()
+        }
+    };
 
-    let name = server.get("name").unwrap().as_string().unwrap();
-    let url = server.get("url").unwrap().as_string().unwrap();
-    let port = server.get("port").unwrap().as_u16().unwrap();
-    let dir = server.get("dir").unwrap().as_string().unwrap();
+    if server.port != 0 && !server.dir.is_empty() {
+        log( format!("port and dir cannot be used together. dir will be ignored for {}", server.hostname).as_str());
+    }
 
-    Server { name, url, port,dir }
+    server
 }
 
 fn get_servers(servers_j: &JArray) -> Vec<Server> {

@@ -1,6 +1,7 @@
-use std::io::Write;
+use std::io::{Error, Write};
 use std::net::TcpStream;
 use std::fs;
+//use mp4::{self, Mp4Reader};
 
 use super::{log, RESPONSE_404, RESPONSE_500};
 
@@ -36,6 +37,17 @@ pub struct ResponseBuilder {
     pub status : String,
     pub error : String,
 }
+fn gzip_it(filestr: Vec<u8>) -> Result<Vec<u8>, Error> {
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    match encoder.write_all(&filestr) {
+        Ok(_) => {},
+        Err(e) => { return Err(e); },
+    }
+    match encoder.finish() {
+        Ok(body) => Ok(body),
+        Err(e) => { return Err(e); },
+    }
+}
 
 impl ResponseBuilder {    
     pub fn build(mut self) -> Response {
@@ -45,41 +57,41 @@ impl ResponseBuilder {
         if self.status == RESPONSE_500 || self.error != String::new() { //if there is error then dont look for a file. just return built-in 500 page
             return ResponseBuilder::error_500(self)
         }
-        let filestr = fs::read(format!("{}/{}", self.dir, self.endpoint));
+        if self.endpoint.ends_with(".mp4") {
+            log("yes");
+            //return self.mp4()
+        }
+        
+        let filestr = fs::read(format!("{}{}", self.dir, self.endpoint));
         match filestr {
             Ok(filestr) => {
-                let (gzipstr, body) = 
-                if self.is_gzip {
-                    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-                    match encoder.write_all(&filestr) {
-                        Ok(_) => {},
-                        Err(e) => {self.error += e.to_string().as_str(); return ResponseBuilder::error_500(self)},
-                    }
-                    let body = match encoder.finish() {
+                let gzipstr = if self.is_gzip { "Content-Encoding: gzip\r\n" } else { "" };
+                let body = if self.is_gzip { 
+                    match gzip_it(filestr) {
                         Ok(body) => body,
                         Err(e) => {self.error += e.to_string().as_str(); return ResponseBuilder::error_500(self)},
-                    };
-                    ("Content-Encoding: gzip\r\n", body) 
+                    }
                 } 
-                else {
-                    ("", filestr) 
-                };
-
+                else { filestr };
+                
                 if self.error.len() != 0 {
                     return ResponseBuilder::error_500(self)
                 }
-                Response {  //THIS IS REAL SENT RESPONSE
+                Response {  //THIS IS EXPECTED RESPONSE
                     headers: format!("{}Content-Type: {}\r\nContent-Length: {}\r\n{}\r\n", self.status, self.content_type, body.len(), gzipstr), 
                     body,
                     stream: self.stream
                 }
             },
-            Err(_) => { //no Err(e) here because it is routing to 404
-                ResponseBuilder::build(ResponseBuilder { dir: self.dir, endpoint: "404.html".to_string(), is_gzip: self.is_gzip, content_type: self.content_type, stream: self.stream, status: RESPONSE_404.to_string(), error: self.error })
+            Err(e) => { //if not found, route to 404
+                if self.endpoint == "/404.html" { //if 404.html not found send 500
+                    self.error = format!("{}", e);
+                    return ResponseBuilder::error_500(self)
+                }
+                ResponseBuilder::build(ResponseBuilder { dir: self.dir, endpoint: "/404.html".to_string(), is_gzip: self.is_gzip, content_type: self.content_type, stream: self.stream, status: RESPONSE_404.to_string(), error: self.error })
             }
         }
     }
-
     pub fn error_500(self) -> Response {        
         log(&self.error);
         let body = format!("
