@@ -5,7 +5,7 @@ use config::{get_config, Config};
 use utils::{response::ResponseBuilder, stream_read, Server, RESPONSE_500};
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref CONFIG : Config = get_config();
+    static ref CONFIG: Config = get_config();
 }
 
 fn main() {

@@ -14,5 +14,11 @@
             "port": 8930,
             "dir": "/usr/share/nginx/stirners/test2"
         }
-    ]
+    ],
+    "default-mimetype": "text/html",
+    "mimetypes": {
+        "html": "text/html",
+        "js": "text/javascript",
+        "css": "text/css"
+    }
 }

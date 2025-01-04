@@ -1,12 +1,20 @@
 use std::net::TcpStream;
+use crate::CONFIG;
+
 use super::{log, response::ResponseBuilder};
 
 pub struct Request {
 	pub method: String,
 	pub endpoint: String,
-	pub protocol: String,
+	pub https: bool,
 	pub headers: Vec<String>,
     pub error: String,
+}
+
+pub enum Method {
+    GET,
+    POST,
+    OTHER
 }
 
 impl Request {
@@ -33,7 +41,11 @@ impl Request {
     pub fn handle(&mut self, stream: TcpStream, dir: String) {
         let endpoint = if self.endpoint == "/" { "/index.html" } else { &self.endpoint }.to_string();
 
-        let content_type = match endpoint.split('.').last().unwrap_or("") {
+        let content_type = CONFIG.mimetypes
+            .get(endpoint.split('.').last().unwrap_or(""))
+            .unwrap_or(&"text/html".to_string()).to_string();
+        
+        /*let content_type = match endpoint.split('.').last().unwrap_or("") {
             "css" => "text/css",
             "ico" => "image/x-icon",
             "html" => "text/html",
@@ -45,9 +57,11 @@ impl Request {
             "gif" => "image/gif",
             "svg" => "image/svg+xml",
             "woff" => "font/woff",
+            "mp3" => "audio/mpeg",
+            "mp4" => "video/mp4",
             "function" => "text/html",
             _ => "text/html",
-        }.to_string();
+        }.to_string();*/
 
         let is_gzip = self.is_gzip_accepted();
         let status = if self.error.len() == 0 { super::RESPONSE_200 } else { super::RESPONSE_500 }.to_string();

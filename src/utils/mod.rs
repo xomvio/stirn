@@ -26,7 +26,7 @@ pub fn stream_read(mut stream:&TcpStream) -> Request {
     Request {
         method: first_line[0].to_string(),
         endpoint: first_line[1].to_string(),
-        protocol:first_line[2].to_string(), 
+        https: false, 
         headers:  buffer_lines[1..].to_vec(),
         error: "".to_string(),
     }
