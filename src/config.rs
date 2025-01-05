@@ -1,11 +1,11 @@
 use std::{collections::HashMap, fs, io::Read};
-use xom_json::{self, to_jobject, JArray, JObject, Val};
+use xom_json::{self, JObject, Val};
 use crate::utils::log;
 
 use super::Server;
 
 pub struct Config {
-    pub port: Option<u16>,
+    pub port: u16,
     // DEFAULT SERVER IS NOW INACTIVE AND WILL BE RE-ACTIVATED IN A FUTURE VERSION
     //pub default: Option<String>,
     pub servers: Vec<Server>,
@@ -15,12 +15,12 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Config {
-        Config { port: None, /*default: Some(String::new()),*/ servers: Vec::new(), mimetypes: HashMap::new(), default_mimetype: String::new() }
+        Config { port: 0, /*default: Some(String::new()),*/ servers: Vec::new(), mimetypes: HashMap::new(), default_mimetype: String::new() }
     }
 }
 
 trait ConfigJObject {
-    fn get_port(&mut self) -> Option<u16>;
+    fn get_port(&mut self) -> u16;
     //fn get_default(&mut self, config: &JObject);
     fn get_server(&mut self) -> Server;
     fn get_servers(&mut self) -> Vec<Server>;    
@@ -29,14 +29,14 @@ trait ConfigJObject {
 }
 
 impl ConfigJObject for JObject {
-    fn get_port(&mut self) -> Option<u16> {
+    fn get_port(&mut self) -> u16 {
         match self.get("port") {
             Some(port_val) => {
                 if !port_val.is_number() { panic!("Port must be a number"); }
                 let port = port_val.as_u16().unwrap();
-                Some(port)
+                port
             },
-            None => Some(80)
+            None => 80
         }
     }
     //fn get_default(&mut self, config: &JObject) {
@@ -123,7 +123,7 @@ impl ConfigJObject for JObject {
     }
 }
 
-pub fn get_config() -> Config {    
+pub fn get_config() -> Config {
     let mut jtext = String::new();
     fs::File::open("stirners.json").unwrap().read_to_string(&mut jtext).unwrap();
 

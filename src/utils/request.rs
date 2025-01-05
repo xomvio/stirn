@@ -1,4 +1,5 @@
-use std::net::TcpStream;
+//use std::net::TcpStream;
+use tokio::net::TcpStream;
 use crate::CONFIG;
 
 use super::{log, response::ResponseBuilder};
@@ -33,37 +34,19 @@ impl Request {
         None
     }
 
-    pub fn is_gzip_accepted(&mut self) -> bool {
+    pub fn accepts_gzip(&mut self) -> bool {
         return self.get_header("Accept-Encoding").is_some_and(|headerval| headerval.contains("gzip"));
     }
 
     // Handle a connection on the specified TCP stream.
-    pub fn handle(&mut self, stream: TcpStream, dir: String) {
+    pub async fn handle(&mut self, stream: TcpStream, dir: String) {
         let endpoint = if self.endpoint == "/" { "/index.html" } else { &self.endpoint }.to_string();
 
         let content_type = CONFIG.mimetypes
             .get(endpoint.split('.').last().unwrap_or(""))
-            .unwrap_or(&"text/html".to_string()).to_string();
-        
-        /*let content_type = match endpoint.split('.').last().unwrap_or("") {
-            "css" => "text/css",
-            "ico" => "image/x-icon",
-            "html" => "text/html",
-            "txt" | "text" => "text/plain",
-            "js" => "text/javascript",
-            "json" => "application/json",
-            "jpg" | "jpeg" => "image/jpeg",
-            "png" => "image/png",
-            "gif" => "image/gif",
-            "svg" => "image/svg+xml",
-            "woff" => "font/woff",
-            "mp3" => "audio/mpeg",
-            "mp4" => "video/mp4",
-            "function" => "text/html",
-            _ => "text/html",
-        }.to_string();*/
+            .unwrap_or(&CONFIG.default_mimetype).to_string();
 
-        let is_gzip = self.is_gzip_accepted();
+        let is_gzip = self.accepts_gzip();
         let status = if self.error.len() == 0 { super::RESPONSE_200 } else { super::RESPONSE_500 }.to_string();
         let error = self.error.clone();
 
@@ -75,6 +58,6 @@ impl Request {
             is_gzip,
             status,
             error,
-        }.build().send();
+        }.build().send().await;
     }
 }

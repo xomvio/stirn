@@ -1,5 +1,7 @@
-use std::io::{Error, Write};
-use std::net::TcpStream;
+//use std::io::{Error, Write};
+//use std::net::TcpStream;
+use tokio::io::{AsyncWriteExt, Error};
+use tokio::net::TcpStream;
 use std::fs;
 //use mp4::{self, Mp4Reader};
 
@@ -12,16 +14,16 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn send(mut self) {
-        match self.stream.write_all(self.headers.as_bytes()) {
+    pub async fn send(mut self) {
+        match self.stream.write_all(self.headers.as_bytes()).await {
             Ok(_) => {},
             Err(e) => {log(format!("Critical: Response cannot sent. {}",e.to_string()).as_str()); return}
         }
-        match self.stream.write_all(&self.body) {
+        match self.stream.write_all(&self.body).await {
             Ok(_) => {},
             Err(e) => {log(format!("Critical: Response cannot sent. {}",e.to_string()).as_str()); return}
         }
-        match self.stream.flush() {
+        match self.stream.flush().await {
             Ok(_) => {},
             Err(e) => {log(format!("Critical: Response cannot sent. {}",e.to_string()).as_str()); return}
         }
@@ -38,6 +40,7 @@ pub struct ResponseBuilder {
     pub error : String,
 }
 fn gzip_it(filestr: Vec<u8>) -> Result<Vec<u8>, Error> {
+    use std::io::Write; //because gz encoder needs it
     let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
     match encoder.write_all(&filestr) {
         Ok(_) => {},
@@ -49,7 +52,7 @@ fn gzip_it(filestr: Vec<u8>) -> Result<Vec<u8>, Error> {
     }
 }
 
-impl ResponseBuilder {    
+impl ResponseBuilder {
     pub fn build(mut self) -> Response {
         if self.endpoint == "/500pls" { //temporary for checking 500. will delete this later
             return ResponseBuilder::error_500(self)
