@@ -1,22 +1,16 @@
-//use std::net::TcpStream;
 use tokio::net::TcpStream;
 use crate::CONFIG;
 
-use super::{log, response::ResponseBuilder};
+use super::{log, response::ResponseBuilder, Method};
 
 pub struct Request {
-	pub method: String,
+	pub method: Method,
 	pub endpoint: String,
 	pub https: bool,
 	pub headers: Vec<String>,
     pub error: String,
 }
 
-pub enum Method {
-    GET,
-    POST,
-    OTHER
-}
 
 impl Request {
     pub fn get_header(&mut self, header: &str) -> Option<&str> {
@@ -38,21 +32,26 @@ impl Request {
         return self.get_header("Accept-Encoding").is_some_and(|headerval| headerval.contains("gzip"));
     }
 
+    pub fn get_mimetype(&mut self) -> String {
+        CONFIG.mimetypes
+            .get(self.endpoint.split('.').last().unwrap_or(""))
+            .unwrap_or(&CONFIG.default_mimetype).to_string()
+    }
+
     // Handle a connection on the specified TCP stream.
     pub async fn handle(&mut self, stream: TcpStream, dir: String) {
         let endpoint = if self.endpoint == "/" { "/index.html" } else { &self.endpoint }.to_string();
 
-        let content_type = CONFIG.mimetypes
-            .get(endpoint.split('.').last().unwrap_or(""))
-            .unwrap_or(&CONFIG.default_mimetype).to_string();
-
+        let mimetype = self.get_mimetype();
         let is_gzip = self.accepts_gzip();
         let status = if self.error.len() == 0 { super::RESPONSE_200 } else { super::RESPONSE_500 }.to_string();
         let error = self.error.clone();
+        let method = self.method.clone();
 
         ResponseBuilder {
             stream,
-            content_type,
+            method,
+            mimetype,
             dir,
             endpoint,
             is_gzip,

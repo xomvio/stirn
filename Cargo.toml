@@ -7,7 +7,5 @@ edition = "2021"
 tokio = { version = "1.25.0", features = ["full"] }
 tokio-rustls = "0.23.4"
 flate2 = "1.0.24"
-#itertools = "0.10.5"
 lazy_static = "1.4.0"
-mp4 = "0.14.0"
 xom_json = { git = "https://github.com/xomvio/xom_json" }

@@ -1,11 +1,8 @@
-//use std::io::{Error, Write};
-//use std::net::TcpStream;
 use tokio::io::{AsyncWriteExt, Error};
 use tokio::net::TcpStream;
 use std::fs;
-//use mp4::{self, Mp4Reader};
 
-use super::{log, RESPONSE_404, RESPONSE_500};
+use super::{log, RESPONSE_404, RESPONSE_500, Method};
 
 pub struct Response {
     pub headers: String,
@@ -34,8 +31,9 @@ pub struct ResponseBuilder {
     pub dir : String,
     pub endpoint : String,
     pub is_gzip : bool,
-    pub content_type : String,
+    pub mimetype : String,
     pub stream : TcpStream,
+    pub method : Method,
     pub status : String,
     pub error : String,
 }
@@ -60,10 +58,6 @@ impl ResponseBuilder {
         if self.status == RESPONSE_500 || self.error != String::new() { //if there is error then dont look for a file. just return built-in 500 page
             return ResponseBuilder::error_500(self)
         }
-        if self.endpoint.ends_with(".mp4") {
-            log("yes");
-            //return self.mp4()
-        }
         
         let filestr = fs::read(format!("{}{}", self.dir, self.endpoint));
         match filestr {
@@ -81,7 +75,7 @@ impl ResponseBuilder {
                     return ResponseBuilder::error_500(self)
                 }
                 Response {  //THIS IS EXPECTED RESPONSE
-                    headers: format!("{}Content-Type: {}\r\nContent-Length: {}\r\n{}\r\n", self.status, self.content_type, body.len(), gzipstr), 
+                    headers: format!("{}Content-Type: {}\r\nContent-Length: {}\r\n{}\r\n", self.status, self.mimetype, body.len(), gzipstr), 
                     body,
                     stream: self.stream
                 }
@@ -91,7 +85,16 @@ impl ResponseBuilder {
                     self.error = format!("{}", e);
                     return ResponseBuilder::error_500(self)
                 }
-                ResponseBuilder::build(ResponseBuilder { dir: self.dir, endpoint: "/404.html".to_string(), is_gzip: self.is_gzip, content_type: self.content_type, stream: self.stream, status: RESPONSE_404.to_string(), error: self.error })
+                ResponseBuilder { 
+                    dir: self.dir, 
+                    endpoint: "/404.html".to_string(), 
+                    is_gzip: self.is_gzip, 
+                    mimetype: self.mimetype, 
+                    stream: self.stream, 
+                    method: self.method,
+                    status: RESPONSE_404.to_string(), 
+                    error: self.error 
+                }.build()
             }
         }
     }

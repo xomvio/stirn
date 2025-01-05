@@ -17,15 +17,15 @@ async fn main() {
             let hostname = match req.get_header("Host") {
                 Some(host) => host,
                 None => {
-                    req.error = "Host header not found in request".to_string();
                     ResponseBuilder {
                         dir: "".to_string(),
                         endpoint: "".to_string(),
                         is_gzip: false,
-                        content_type: "text/html".to_string(),
+                        mimetype: "text/html".to_string(),
                         stream,
+                        method: req.method,
                         status: RESPONSE_500.to_string(),
-                        error: req.error,
+                        error: "Host header not found in request".to_string(),
                     }
                     .build()
                     .send().await;
@@ -40,24 +40,5 @@ async fn main() {
             }
         });
     }
-/*    while let Ok((mut stream, _)) = listener.accept() {
-        tokio::spawn(async move {
-            let mut req= stream_read(&mut stream).await;
-            let hostname = match req.get_header("Host") {
-                Some(host) => host,
-                None => { req.error = "Host header not found in request".to_string();
-                    ResponseBuilder { dir: "".to_string(), endpoint: "".to_string(), is_gzip: false, content_type: "text/html".to_string(), stream, status: RESPONSE_500.to_string(), error: req.error }.build().send();
-                    return;
-                }
-            };
-
-            for server in CONFIG.servers.iter() {
-                if server.hostname == hostname {
-                    let _ = req.handle(stream, server.dir.clone());
-                    break;
-                }
-            }
-        });
-    }*/
 }
 

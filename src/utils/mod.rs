@@ -1,19 +1,17 @@
-//use std::net::TcpStream;
-//use std::io::{BufReader, Read};
 use tokio::net::TcpStream;
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader};
-//use itertools::Itertools;
+use tokio::io::{AsyncReadExt, BufReader};
 pub mod request;
 use request::Request;
 pub mod response;
 
 pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
-pub const RESPONSE_206:&str = "HTTP/1.1 206 Partial Content\r\n";
 pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 pub const RESPONSE_500:&str = "HTTP/1.1 500 Internal Server Error\r\n";
 
 pub async fn stream_read(stream:&mut TcpStream) -> Request {
-    let mut reading_buffer = [0; 1024];	//reading buffer
+    //reading buffer
+    let mut reading_buffer = [0; 1024];
+
     //writing stream to buffer as bytes
     match BufReader::new(stream).read(&mut reading_buffer).await {
         Ok(_) => {},
@@ -25,8 +23,14 @@ pub async fn stream_read(stream:&mut TcpStream) -> Request {
     let buffer_lines: Vec<String> = buffer_str.split("\r\n").map(|s| s.to_string()).collect();	//headers
     let first_line: Vec<String> = buffer_lines[0].split_whitespace().map(|s| s.to_string()).collect();	//first line of header
 
+    let method = match first_line[0].as_str() {
+        "GET" => Method::GET,
+        "POST" => Method::POST,
+        _ => Method::OTHER
+    };
+
     Request {
-        method: first_line[0].to_string(),
+        method,
         endpoint: first_line[1].to_string(),
         https: false, 
         headers:  buffer_lines[1..].to_vec(),
@@ -43,4 +47,19 @@ pub struct Server {
     pub hostname: String,
     pub port: u16,
     pub dir: String,
+}
+
+pub enum Method {
+    GET,
+    POST,
+    OTHER
+}
+impl Clone for Method {
+    fn clone(&self) -> Self {
+        match self {
+            Method::GET => Method::GET,
+            Method::POST => Method::POST,
+            Method::OTHER => Method::OTHER,
+        }
+    }
 }
