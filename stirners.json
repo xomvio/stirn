@@ -5,7 +5,21 @@
     "servers": [
         {
             "name": "Ornek1",
+            "hostname": "localhost:4221",
+            "server-type": "Static",
+            "dir":"/usr/share/nginx/stirners"
+        },
+        {
+            "name": "Ornek2",
             "hostname": "127.0.0.1:4221",
+            "server-type": "PortForwarded",
+            "port": 8080
+        },
+        {
+            "name": "Ornek3",
+            "hostname": "localhost:4223",
+            "server-type": "Stirner",
+            "port": 4323,
             "dir":"/usr/share/nginx/stirners"
         },
         {

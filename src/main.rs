@@ -1,7 +1,10 @@
 mod config;
 mod utils;
+use std::io::Read;
+
 use config::{get_config, Config};
-use utils::{response::ResponseBuilder, stream_read, Server, RESPONSE_500};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use utils::{response::{Response, ResponseBuilder}, stream_read, stream_read_pure, Server, RESPONSE_500};
 use lazy_static::lazy_static;
 lazy_static! {
     static ref CONFIG: Config = get_config();
@@ -32,9 +35,16 @@ async fn main() {
                     return;
                 }
             };
-            for server in CONFIG.servers.iter() {
+            for server in CONFIG.servers.iter() {                
                 if server.hostname == hostname {
-                    let _ = req.handle(stream, server.dir.clone()).await;
+                    if server.port != 0 {
+                        // TODO: implement port forwarding
+                        // let _ = req.handle_port_forwarded(stream, server.clone()).await;
+                        todo!()
+                    }
+                    else {
+                        let _ = req.handle_static(stream, server.clone()).await;
+                    }                    
                     break;
                 }
             }

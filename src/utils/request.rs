@@ -2,6 +2,7 @@ use tokio::net::TcpStream;
 use crate::CONFIG;
 
 use super::{log, response::ResponseBuilder, Method};
+pub use super::Server;
 
 pub struct Request {
 	pub method: Method,
@@ -39,9 +40,8 @@ impl Request {
     }
 
     // Handle a connection on the specified TCP stream.
-    pub async fn handle(&mut self, stream: TcpStream, dir: String) {
+    pub async fn handle_static(&mut self, stream: TcpStream, server: Server) {
         let endpoint = if self.endpoint == "/" { "/index.html" } else { &self.endpoint }.to_string();
-
         let mimetype = self.get_mimetype();
         let is_gzip = self.accepts_gzip();
         let status = if self.error.len() == 0 { super::RESPONSE_200 } else { super::RESPONSE_500 }.to_string();
@@ -52,7 +52,7 @@ impl Request {
             stream,
             method,
             mimetype,
-            dir,
+            dir: server.dir,
             endpoint,
             is_gzip,
             status,
