@@ -17,10 +17,9 @@
         },
         {
             "name": "Ornek3",
-            "hostname": "localhost:4223",
-            "server-type": "Stirner",
-            "port": 4323,
-            "dir":"/usr/share/nginx/stirners"
+            "hostname": "localhost:4222",
+            "server-type": "Static",
+            "dir":"/home/xomvio/yasirsec/Coding/Html/photoweb"
         }
     ],
     "default-mimetype": "text/html",

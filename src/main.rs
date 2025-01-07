@@ -38,15 +38,12 @@ async fn main() {
             for server in CONFIG.servers.iter() {                
                 if server.hostname == hostname {
                     if server.port != 0 {
-                        //println!("{}",req.raw);
                         let mut forwardstream = tokio::net::TcpStream::connect(format!("localhost:{}", server.port)).await.unwrap();
-                        let _ = forwardstream.write_all(req.raw.as_bytes()).await;
+                        let _ = forwardstream.write_all(req.raw.as_bytes()).await.unwrap();
                         let mut reader = tokio::io::BufReader::new(&mut forwardstream);
-                        let mut buf = String::new();
-                        let _ = reader.read_to_string(&mut buf).await;
-                        let _ = stream.write_all(buf.as_bytes()).await;
-                        //let abc = stream_read_raw(&mut forwardstream).await;
-                        //println!("{}",abc);
+                        let mut buf: Vec<u8> = Vec::new();
+                        let _ = reader.read_to_end(&mut buf).await.unwrap();
+                        let _ = stream.write_all(buf.as_slice()).await;
                     }
                     else {
                         let _ = req.handle_static(stream, server.clone()).await;

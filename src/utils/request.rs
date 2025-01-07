@@ -39,6 +39,7 @@ impl Request {
             .get(self.endpoint.split('.').last().unwrap_or(""))
             .unwrap_or(&CONFIG.default_mimetype).to_string()
     }
+
     
     // Handle a connection on the specified TCP stream.
     pub async fn handle_static(&mut self, stream: TcpStream, server: Server) {
