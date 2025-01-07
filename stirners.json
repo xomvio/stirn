@@ -21,12 +21,6 @@
             "server-type": "Stirner",
             "port": 4323,
             "dir":"/usr/share/nginx/stirners"
-        },
-        {
-            "name": "Ornek2",
-            "hostname": "localhost:4221",
-            "port": 8930,
-            "dir": "/usr/share/nginx/stirners/test2"
         }
     ],
     "default-mimetype": "text/html",

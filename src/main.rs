@@ -4,7 +4,7 @@ use std::io::Read;
 
 use config::{get_config, Config};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use utils::{response::{Response, ResponseBuilder}, stream_read, stream_read_pure, Server, RESPONSE_500};
+use utils::{response::{Response, ResponseBuilder}, stream_read, stream_read_raw, Server, RESPONSE_500};
 use lazy_static::lazy_static;
 lazy_static! {
     static ref CONFIG: Config = get_config();
@@ -38,9 +38,15 @@ async fn main() {
             for server in CONFIG.servers.iter() {                
                 if server.hostname == hostname {
                     if server.port != 0 {
-                        // TODO: implement port forwarding
-                        // let _ = req.handle_port_forwarded(stream, server.clone()).await;
-                        todo!()
+                        //println!("{}",req.raw);
+                        let mut forwardstream = tokio::net::TcpStream::connect(format!("localhost:{}", server.port)).await.unwrap();
+                        let _ = forwardstream.write_all(req.raw.as_bytes()).await;
+                        let mut reader = tokio::io::BufReader::new(&mut forwardstream);
+                        let mut buf = String::new();
+                        let _ = reader.read_to_string(&mut buf).await;
+                        let _ = stream.write_all(buf.as_bytes()).await;
+                        //let abc = stream_read_raw(&mut forwardstream).await;
+                        //println!("{}",abc);
                     }
                     else {
                         let _ = req.handle_static(stream, server.clone()).await;

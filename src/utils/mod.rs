@@ -8,14 +8,17 @@ pub const RESPONSE_200:&str = "HTTP/1.1 200 OK\r\n";
 pub const RESPONSE_404:&str = "HTTP/1.1 404 Not Found\r\n";
 pub const RESPONSE_500:&str = "HTTP/1.1 500 Internal Server Error\r\n";
 
-pub async fn stream_read_pure(stream:&mut TcpStream) -> [u8; 1024] {
+pub async fn stream_read_raw(stream:&mut TcpStream) -> String {
+    //reading buffer
     let mut reading_buffer = [0; 1024];
     //writing stream to buffer as bytes
     match BufReader::new(stream).read(&mut reading_buffer).await {
         Ok(_) => {},
         Err(e) => { log(format!("Critical: Cannot read stream. {}",e.to_string()).as_str());}
     }
-    reading_buffer
+    let buffer_str = String::from_utf8_lossy(&reading_buffer);	//convert buffer to string
+    println!("{}", buffer_str);
+    buffer_str.to_string()
 }
 
 pub async fn stream_read(stream:&mut TcpStream) -> Request {
@@ -44,6 +47,7 @@ pub async fn stream_read(stream:&mut TcpStream) -> Request {
         https: false, 
         headers:  buffer_lines[1..].to_vec(),
         error: "".to_string(),
+        raw: buffer_str.to_string(),
     }
 }
 
