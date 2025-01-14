@@ -1,3 +1,6 @@
+# Note:
+I'm not continuing with this project since there are a thousand web server already written in Rust. However, I'm glad I learned a lot during its development.
+
 # Stirn
 **Stirn** is a web server **prototype** written in Rust, designed to host and manage multiple websites seamlessly. I am aiming to add enhancements like real-time data sharing and WebAssembly (Wasm) integration.
 
