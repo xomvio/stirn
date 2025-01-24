@@ -23,7 +23,7 @@ Together, Stirn and Stirner will create a cohesive system where backend efficien
 - **Real-time Communication (Upcoming):** Enable websites to instantly share data with each other. Edit and synchronize information in real-time.
 
 ## Development Roadmap
-### Phase 1: Core Web Server Enhancements (We are here)
+### Phase 1: Core Web Server Enhancements
 1. Improve request handling to support more HTTP methods.
 2. Implement basic routing capabilities.
 3. Add support for static file serving with caching options.
